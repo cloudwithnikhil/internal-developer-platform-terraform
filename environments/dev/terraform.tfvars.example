@@ -1,0 +1,17 @@
+vpc_id              = "vpc-xxxxxxxxxxxxxxxxx"
+internet_gateway_id = "igw-xxxxxxxxxxxxxxxxx"
+
+public_subnets = {
+  "ap-south-1a" = "172.31.82.0/24"
+  "ap-south-1b" = "172.31.83.0/24"
+}
+
+private_app_subnets = {
+  "ap-south-1a" = "172.31.48.0/20"
+  "ap-south-1b" = "172.31.64.0/20"
+}
+
+database_subnets = {
+  "ap-south-1a" = "172.31.80.0/24"
+  "ap-south-1b" = "172.31.81.0/24"
+}
