@@ -40,3 +40,19 @@ variable "database_subnets" {
   description = "Isolated RDS subnet CIDRs keyed by Availability Zone"
   type        = map(string)
 }
+
+variable "public_access_cidrs" {
+  description = "Administrator public IPv4 CIDRs allowed to access the EKS API"
+  type        = list(string)
+
+  validation {
+    condition = (
+      length(var.public_access_cidrs) > 0 &&
+      alltrue([
+        for cidr in var.public_access_cidrs :
+        can(cidrnetmask(cidr)) && endswith(cidr, "/32")
+      ])
+    )
+    error_message = "Provide one or more valid IPv4 /32 CIDRs. Broad CIDR ranges are not allowed."
+  }
+}

@@ -59,6 +59,21 @@ resource "aws_subnet" "database" {
   }
 }
 
+resource "aws_db_subnet_group" "database" {
+  name        = "${var.name}-${var.environment}-database"
+  description = "Private database subnets for ${var.name}-${var.environment}"
+  subnet_ids  = [for subnet in aws_subnet.database : subnet.id]
+
+  tags = {
+    Name        = "${var.name}-${var.environment}-database"
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+    Project     = var.name
+    Network     = "Isolated"
+    Role        = "Database"
+  }
+}
+
 # Public routing through the existing Internet Gateway.
 resource "aws_route_table" "public" {
   vpc_id = data.aws_vpc.selected.id

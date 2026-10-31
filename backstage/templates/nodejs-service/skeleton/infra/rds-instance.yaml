@@ -1,0 +1,28 @@
+apiVersion: rds.aws.upbound.io/v1beta1
+kind: Instance
+metadata:
+  name: ${{ values.name }}-db
+spec:
+  forProvider:
+    allocatedStorage: 20
+    autoMinorVersionUpgrade: true
+    dbName: ${{ values.dbName }}
+    dbSubnetGroupName: ${{ values.dbSubnetGroupName }}
+    engine: postgres
+    finalSnapshotIdentifier: ${{ values.name }}-final-snapshot
+    instanceClass: ${{ values.dbInstanceClass }}
+    passwordSecretRef:
+      key: password
+      name: ${{ values.name }}-db-credentials
+      namespace: ${{ values.crossplaneNamespace }}
+    publiclyAccessible: false
+    region: ${{ values.region }}
+    skipFinalSnapshot: false
+    storageEncrypted: true
+    username: appuser
+    vpcSecurityGroupIds: ${{ values.vpcSecurityGroupIds | dump }}
+  providerConfigRef:
+    name: default
+  writeConnectionSecretToRef:
+    name: ${{ values.name }}-db-connection
+    namespace: ${{ values.crossplaneNamespace }}

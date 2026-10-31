@@ -40,6 +40,11 @@ output "database_subnet_cidrs" {
   }
 }
 
+output "database_subnet_group_name" {
+  description = "RDS DB subnet group name for the isolated database subnets"
+  value       = aws_db_subnet_group.database.name
+}
+
 output "public_route_table_id" {
   description = "Public route table ID"
   value       = aws_route_table.public.id

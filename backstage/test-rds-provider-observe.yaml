@@ -1,0 +1,13 @@
+apiVersion: rds.aws.upbound.io/v1beta1
+kind: SubnetGroup
+metadata:
+  name: rds-provider-auth-check
+  annotations:
+    crossplane.io/external-name: crossplane-provider-auth-check-nonexistent
+spec:
+  managementPolicies:
+    - Observe
+  providerConfigRef:
+    name: default
+  forProvider:
+    region: ap-south-1

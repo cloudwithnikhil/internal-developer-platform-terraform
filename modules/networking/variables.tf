@@ -48,7 +48,7 @@ variable "public_subnets" {
       values(var.public_subnets),
       values(var.private_app_subnets),
       values(var.database_subnets)
-    ))) == (
+      ))) == (
       length(var.public_subnets) +
       length(var.private_app_subnets) +
       length(var.database_subnets)

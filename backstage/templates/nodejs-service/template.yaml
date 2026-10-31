@@ -1,0 +1,161 @@
+﻿apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+
+metadata:
+  name: nodejs-service-template
+  title: Node.js Service with PostgreSQL
+  description: Create a Node.js service, GitHub Actions pipeline, and Crossplane-managed PostgreSQL database.
+
+spec:
+  owner: user:guest
+  type: service
+
+  parameters:
+    - title: Service Details
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Project Name
+          type: string
+          description: Unique name for your service
+          maxLength: 40
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          ui:field: EntityNamePicker
+          ui:autofocus: true
+
+        description:
+          title: Description
+          type: string
+          description: Briefly describe what this service does.
+
+        owner:
+          title: Owner
+          type: string
+          description: Backstage user or group responsible for this service.
+          default: user:guest
+
+    - title: GitHub Repository
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+    - title: PostgreSQL Database
+      required:
+        - crossplaneNamespace
+        - region
+        - dbInstanceClass
+        - dbName
+        - dbSubnetGroupName
+        - vpcSecurityGroupIds
+      properties:
+        crossplaneNamespace:
+          title: Kubernetes Namespace
+          type: string
+          description: Existing namespace for the database password and connection secrets.
+          default: default
+          maxLength: 63
+          pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+
+        region:
+          title: AWS Region
+          type: string
+          description: AWS region where the database will be created.
+          default: ap-south-1
+          pattern: "^[a-z]{2}(-[a-z]+)+-[0-9]+$"
+
+        dbInstanceClass:
+          title: RDS Instance Class
+          type: string
+          description: Choose an instance class supported in the selected region.
+          default: db.t4g.micro
+          enum:
+            - db.t4g.micro
+            - db.t3.micro
+            - db.t4g.small
+
+        dbName:
+          title: Database Name
+          type: string
+          description: Initial PostgreSQL database name.
+          default: app
+          maxLength: 63
+          pattern: "^[A-Za-z][A-Za-z0-9_]*$"
+
+        dbSubnetGroupName:
+          title: RDS Subnet Group
+          type: string
+          description: Terraform output database_subnet_group_name for the selected AWS region.
+          pattern: "^[a-z0-9][a-z0-9-]*$"
+
+        vpcSecurityGroupIds:
+          title: VPC Security Group IDs
+          type: array
+          description: Terraform output database_security_group_id; it permits PostgreSQL from the EKS application security group.
+          minItems: 1
+          items:
+            type: string
+            pattern: "^sg-[0-9a-f]{8,17}$"
+
+  steps:
+    - id: fetch-base
+      name: Generate Project Skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        copyWithoutRender:
+          - .github/workflows/ci.yml
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          crossplaneNamespace: ${{ parameters.crossplaneNamespace }}
+          region: ${{ parameters.region }}
+          dbInstanceClass: ${{ parameters.dbInstanceClass }}
+          dbName: ${{ parameters.dbName }}
+          dbSubnetGroupName: ${{ parameters.dbSubnetGroupName }}
+          vpcSecurityGroupIds: ${{ parameters.vpcSecurityGroupIds }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+
+    - id: provision-database
+      name: Provision PostgreSQL with Crossplane
+      action: crossplane:provision-rds
+      input:
+        manifestPath: infra/rds-instance.yaml
+        namespace: ${{ parameters.crossplaneNamespace }}
+        passwordSecretName: ${{ parameters.name }}-db-credentials
+        instanceName: ${{ parameters.name }}-db
+        connectionSecretName: ${{ parameters.name }}-db-connection
+
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: GitHub Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in Backstage Catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
+      - title: Crossplane Database Manifest
+        url: ${{ steps['publish'].output.remoteUrl }}/blob/main/infra/rds-instance.yaml
