@@ -22,6 +22,16 @@ variable "eks_admin_user_arn" {
   }
 }
 
+variable "github_owner" {
+  description = "GitHub user or organization allowed to assume the deployment role"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$", var.github_owner))
+    error_message = "Provide a valid GitHub username or organization name."
+  }
+}
+
 variable "cluster_version" {
   description = "Kubernetes version for the EKS cluster"
   type        = string

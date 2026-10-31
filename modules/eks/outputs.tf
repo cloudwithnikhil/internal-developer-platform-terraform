@@ -32,3 +32,28 @@ output "cluster_log_group_name" {
   description = "CloudWatch log group for EKS control-plane logs"
   value       = aws_cloudwatch_log_group.cluster.name
 }
+
+output "github_actions_oidc_provider_arn" {
+  description = "OIDC provider ARN used by per-repository GitHub deployment roles"
+  value       = aws_iam_openid_connect_provider.github_actions.arn
+}
+
+output "ecr_repository_prefix" {
+  description = "ECR repository name prefix used for generated services"
+  value       = "${var.name}-${var.environment}-services"
+}
+
+output "aws_account_id" {
+  description = "AWS account ID for generated service deployment roles"
+  value       = data.aws_caller_identity.current.account_id
+}
+
+output "github_owner" {
+  description = "GitHub owner trusted to publish generated service repositories"
+  value       = var.github_owner
+}
+
+output "github_actions_runner_security_group_id" {
+  description = "Security group to attach to the private GitHub Actions runner"
+  value       = aws_security_group.github_actions_runner.id
+}

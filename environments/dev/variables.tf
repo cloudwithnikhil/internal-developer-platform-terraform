@@ -16,6 +16,17 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "github_owner" {
+  description = "GitHub user or organization that owns the generated service repositories"
+  type        = string
+  default     = "cloudwithnikhil"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$", var.github_owner))
+    error_message = "Provide a valid GitHub username or organization name."
+  }
+}
+
 variable "vpc_id" {
   description = "Existing AWS VPC ID"
   type        = string

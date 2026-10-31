@@ -4,7 +4,7 @@ kind: Template
 metadata:
   name: nodejs-service-template
   title: Node.js Service with PostgreSQL
-  description: Create a Node.js service, GitHub Actions pipeline, and Crossplane-managed PostgreSQL database.
+  description: Create a Node.js service, deploy it to EKS, and provision a Crossplane-managed PostgreSQL database.
 
 spec:
   owner: user:guest
@@ -44,32 +44,62 @@ spec:
         repoUrl:
           title: Repository Location
           type: string
+          description: Choose the GitHub owner configured by Terraform so the deployment role can trust this repository.
           ui:field: RepoUrlPicker
           ui:options:
             allowedHosts:
               - github.com
 
+    - title: AWS Deployment
+      required:
+        - clusterName
+        - awsAccountId
+        - githubOwner
+        - githubOidcProviderArn
+        - ecrRepositoryPrefix
+      properties:
+        clusterName:
+          title: EKS Cluster Name
+          type: string
+          description: Terraform output cluster_name for the target environment.
+          pattern: "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+
+        awsAccountId:
+          title: AWS Account ID
+          type: string
+          description: Terraform output aws_account_id.
+          pattern: "^[0-9]{12}$"
+
+        githubOwner:
+          title: GitHub Owner
+          type: string
+          description: Terraform output github_owner; the repository must belong to this user or organization.
+          pattern: "^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$"
+
+        githubOidcProviderArn:
+          title: GitHub OIDC Provider ARN
+          type: string
+          description: Terraform output github_actions_oidc_provider_arn.
+          pattern: "^arn:aws:iam::[0-9]{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+
+        ecrRepositoryPrefix:
+          title: ECR Repository Prefix
+          type: string
+          description: Terraform output ecr_repository_prefix; the workflow creates one immutable ECR repository per service.
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+
     - title: PostgreSQL Database
       required:
-        - crossplaneNamespace
         - region
         - dbInstanceClass
         - dbName
         - dbSubnetGroupName
         - vpcSecurityGroupIds
       properties:
-        crossplaneNamespace:
-          title: Kubernetes Namespace
-          type: string
-          description: Existing namespace for the database password and connection secrets.
-          default: default
-          maxLength: 63
-          pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-
         region:
           title: AWS Region
           type: string
-          description: AWS region where the database will be created.
+          description: AWS region where the EKS cluster, ECR repositories, and database are provisioned.
           default: ap-south-1
           pattern: "^[a-z]{2}(-[a-z]+)+-[0-9]+$"
 
@@ -118,8 +148,12 @@ spec:
           name: ${{ parameters.name }}
           description: ${{ parameters.description }}
           owner: ${{ parameters.owner }}
-          crossplaneNamespace: ${{ parameters.crossplaneNamespace }}
+          namespace: ${{ parameters.name }}
           region: ${{ parameters.region }}
+          clusterName: ${{ parameters.clusterName }}
+          awsAccountId: ${{ parameters.awsAccountId }}
+          githubOwner: ${{ parameters.githubOwner }}
+          ecrRepositoryPrefix: ${{ parameters.ecrRepositoryPrefix }}
           dbInstanceClass: ${{ parameters.dbInstanceClass }}
           dbName: ${{ parameters.dbName }}
           dbSubnetGroupName: ${{ parameters.dbSubnetGroupName }}
@@ -134,14 +168,21 @@ spec:
         defaultBranch: main
 
     - id: provision-database
-      name: Provision PostgreSQL with Crossplane
+      name: Provision EKS access and PostgreSQL with Crossplane
       action: crossplane:provision-rds
       input:
         manifestPath: infra/rds-instance.yaml
-        namespace: ${{ parameters.crossplaneNamespace }}
+        namespace: ${{ parameters.name }}
         passwordSecretName: ${{ parameters.name }}-db-credentials
         instanceName: ${{ parameters.name }}-db
         connectionSecretName: ${{ parameters.name }}-db-connection
+        awsAccountId: ${{ parameters.awsAccountId }}
+        region: ${{ parameters.region }}
+        clusterName: ${{ parameters.clusterName }}
+        githubOwner: ${{ parameters.githubOwner }}
+        githubOidcProviderArn: ${{ parameters.githubOidcProviderArn }}
+        ecrRepositoryPrefix: ${{ parameters.ecrRepositoryPrefix }}
+        repoUrl: ${{ steps['publish'].output.remoteUrl }}
 
     - id: register
       name: Register in Backstage Catalog
@@ -159,3 +200,5 @@ spec:
         entityRef: ${{ steps['register'].output.entityRef }}
       - title: Crossplane Database Manifest
         url: ${{ steps['publish'].output.remoteUrl }}/blob/main/infra/rds-instance.yaml
+      - title: GitHub Actions Deployment Workflow
+        url: ${{ steps['publish'].output.remoteUrl }}/blob/main/.github/workflows/ci.yml

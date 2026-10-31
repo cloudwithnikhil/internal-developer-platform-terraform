@@ -1,0 +1,9 @@
+{
+  "awsRegion": "${{ values.region }}",
+  "awsAccountId": "${{ values.awsAccountId }}",
+  "clusterName": "${{ values.clusterName }}",
+  "githubOwner": "${{ values.githubOwner }}",
+  "ecrRepositoryPrefix": "${{ values.ecrRepositoryPrefix }}",
+  "serviceName": "${{ values.name }}",
+  "namespace": "${{ values.namespace }}"
+}

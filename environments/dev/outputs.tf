@@ -57,3 +57,33 @@ output "cluster_endpoint" {
   description = "EKS Kubernetes API endpoint"
   value       = module.eks.cluster_endpoint
 }
+
+output "github_actions_oidc_provider_arn" {
+  description = "OIDC provider ARN used by per-repository GitHub deployment roles"
+  value       = module.eks.github_actions_oidc_provider_arn
+}
+
+output "ecr_repository_prefix" {
+  description = "ECR repository name prefix used for generated services"
+  value       = module.eks.ecr_repository_prefix
+}
+
+output "aws_account_id" {
+  description = "AWS account ID for generated service deployment roles"
+  value       = module.eks.aws_account_id
+}
+
+output "github_owner" {
+  description = "GitHub owner trusted to publish generated service repositories"
+  value       = module.eks.github_owner
+}
+
+output "github_actions_runner_security_group_id" {
+  description = "Security group to attach to the private GitHub Actions runner"
+  value       = module.eks.github_actions_runner_security_group_id
+}
+
+output "aws_region" {
+  description = "AWS region used by the Terraform dev environment"
+  value       = var.aws_region
+}

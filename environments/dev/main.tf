@@ -25,6 +25,7 @@ module "eks" {
   name               = var.platform_name
   environment        = var.environment
   eks_admin_user_arn = "arn:aws:iam::129896630824:user/terraform-platform-operator"
+  github_owner       = var.github_owner
 
   cluster_version = "1.37"
 
